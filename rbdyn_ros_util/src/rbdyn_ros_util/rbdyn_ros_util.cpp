@@ -1,0 +1,204 @@
+/**
+ * @file rbdyn_ros_util.cpp
+ */
+
+#include <eigen_conversions/eigen_msg.h>
+#include <RBDyn/FK.h>
+
+#include "rbdyn_ros_util/rbdyn_ros_util.h"
+#include "easy_marker/easy_marker.h"
+
+using namespace std;
+using namespace Eigen;
+using namespace tf;
+using namespace sva;
+using namespace rbd;
+using namespace color_names;
+using namespace easy_marker;
+using namespace sensor_msgs;
+using namespace visualization_msgs;
+using namespace geometry_msgs;
+
+namespace rbdyn_ros_util
+{
+
+void printMBC(const MultiBody& mb, const MultiBodyConfig& mbc)
+{
+  auto mbc_ = mbc;
+  forwardKinematics(mb, mbc_);
+
+  // mbc.q
+  for (int i = 0; i < mb.nrJoints(); i++)
+  {
+    cout << mb.joint(i).name() << ": [";
+    for (auto&& q : mbc_.q[i])
+    {
+      cout << q << ", ";
+    }
+    cout << "]" << endl;
+  }
+
+  // mbc.bodyPosW
+  for (int i = 0; i < mb.nrBodies(); i++)
+  {
+    cout << "------" << endl;
+    cout << mb.body(i).name() << ": " << endl;
+    cout << "translation" << endl
+         << mbc_.bodyPosW[i].translation().transpose() << endl;
+    cout << "rotation" << endl
+         << mbc_.bodyPosW[i].rotation() << endl;
+  }
+
+}
+
+void jointStateFromMBC(MultiBody mb, MultiBodyConfig mbc,
+                       JointState& msg)
+{
+  msg.name.clear();
+  msg.position.clear();
+  msg.velocity.clear(); /// @todo set velocity
+  msg.effort.clear();
+
+  for (int count = 0; count < mbc.q.size(); count++)
+  {
+    //if (mb.joint(count).type() == rbd::Joint::Type::Rev ||
+    //  mb.joint(count).type() == rbd::Joint::Type::Prism) // 1dof joint
+    if (mb.joint(count).dof() == 1) // Only for idof joint
+    {
+      msg.name.push_back(mb.joint(count).name());
+      msg.position.push_back(mbc.q[count][0]);
+    }
+  }
+  msg.header.stamp = ros::Time::now();
+}
+
+void jointStateToMBC(MultiBody mb, sensor_msgs::JointState msg,
+                     MultiBodyConfig& mbc)
+{
+  /// @todo set velocity
+  for (int i = 0; msg.name.size(); i++)
+  {
+    int index = mb.jointIndexByName(msg.name[i]);
+    if (mb.joint(index).dof() == 1) // Only for 1dof joint
+    {
+      mbc.q[index][0] = msg.position[i];
+    }
+  }
+}
+
+void setPosLimitsToMBC(MultiBody mb,
+                       map<string, double> q_limit, MultiBodyConfig& mbc_limit)
+{
+  mbc_limit.zero(mb);
+  for (auto itr = q_limit.begin(); itr != q_limit.end(); itr++)
+    mbc_limit.q[mb.jointIndexByName(itr->first)][0] = itr->second;
+}
+
+
+Pose geoPoseFromPTd(const PTransformd& pt)
+{
+  /// @note PTransformd.rotation == ^{After}R_{Before}
+  ///       geometry_msgs::Quaternion => ^{Before}R_{After}
+  ///       Between SVA and ROS, rotation matrix should be inverted
+  Pose p;
+  Vector3d pos = pt.translation();
+  Quaterniond qua(pt.rotation().transpose());
+
+  pointEigenToMsg(pos, p.position);
+  quaternionEigenToMsg(qua, p.orientation);
+
+  return p;
+}
+
+PTransformd geoPoseToPTd(const Pose& pose)
+{
+  Vector3d pos;
+  Quaterniond qua;
+
+  pointMsgToEigen(pose.position, pos);
+  quaternionMsgToEigen(pose.orientation, qua);
+
+  return PTransformd(qua.inverse(), pos);
+}
+
+MarkerArray makeMarkerArrayFromMBC(
+    const rbd::MultiBody& mb,
+    const rbd::MultiBodyConfig& mbc,
+    const std::string& mb_root_frame_id)
+{
+  MarkerArray msg;
+  int id = 0;
+  auto stamp = ros::Time::now();
+  string frame_id = mb_root_frame_id;
+
+  for (int i = 0; i < mb.nrBodies(); i++)
+  {
+    PTransformd X_O_l = mbc.bodyPosW[i];
+    Marker mrk = makeMarkerMESH_RESOURCETemplate();
+    mrk.header.stamp = stamp;
+    mrk.header.frame_id = frame_id;
+    mrk.id = id;
+    id++;
+    mrk.pose = geoPoseFromPTd(X_O_l);
+    mrk.color = makeColorMsg("coral");
+    mrk.color.a = 0.5;
+    mrk.scale.x *= 0.1;
+    mrk.scale.y *= 0.1;
+    mrk.scale.z *= 0.1;
+    msg.markers.push_back(mrk);
+
+    mrk = makeMarkerTEXT_VIEW_FACINGTemplate(mb.body(i).name());
+    mrk.header.stamp = stamp;
+    mrk.header.frame_id = frame_id;
+    mrk.id = id;
+    id++;
+    mrk.pose = geoPoseFromPTd(X_O_l);
+    mrk.color = makeColorMsg("aqua");
+    mrk.scale.x *= 0.1;
+    mrk.scale.y *= 0.1;
+    mrk.scale.z *= 0.1;
+    msg.markers.push_back(mrk);
+  }
+
+  return msg;
+}
+
+Marker makePTdMarker(
+    const sva::PTransformd& transform,
+    const int& marker_id,
+    const std::string& frame_id)
+{
+  Marker msg = makeMarkerMESH_RESOURCETemplate(
+      "package://easy_marker/meshes/xyz_marker.stl", true,
+      1.0, "crimson", frame_id);
+  msg.header.stamp = ros::Time::now();
+  msg.id = marker_id;
+  msg.pose = geoPoseFromPTd(transform);
+
+  return msg;
+}
+
+Marker makePTdsPointsMarker(
+    const std::vector<sva::PTransformd>& transforms,
+    const int& marker_id,
+    const std::string& frame_id)
+{
+  vector<Point> points;
+  vector<string> color_names;
+
+  for (auto&& t : transforms)
+  {
+    geometry_msgs::Point p;
+    pointEigenToMsg(t.translation(), p);
+    points.push_back(p);
+    color_names.push_back("lime");
+  }
+
+  Marker msg = makeMarkerPOINTSTemplate(points, color_names, 1.0, frame_id);
+  msg.header.stamp = ros::Time::now();
+  msg.id = marker_id;
+
+  return msg;
+}
+
+}
