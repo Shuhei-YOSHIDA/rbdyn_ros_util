@@ -22,7 +22,8 @@ using namespace geometry_msgs;
 namespace rbdyn_ros_util
 {
 
-void printMBC(const MultiBody& mb, const MultiBodyConfig& mbc)
+void printMBC(const MultiBody& mb, const MultiBodyConfig& mbc,
+              const map<string, PTransformd>& mbToBase)
 {
   auto mbc_ = mbc;
   forwardKinematics(mb, mbc_);
@@ -41,12 +42,14 @@ void printMBC(const MultiBody& mb, const MultiBodyConfig& mbc)
   // mbc.bodyPosW
   for (int i = 0; i < mb.nrBodies(); i++)
   {
+    auto name = mb.body(i).name();
+    auto X_O_b = mbToBase.at(name)*mbc_.bodyPosW[i]; // X_j_b*X_O_j
     cout << "------" << endl;
-    cout << mb.body(i).name() << ": " << endl;
+    cout << name << ": " << endl;
     cout << "translation" << endl
-         << mbc_.bodyPosW[i].translation().transpose() << endl;
+         << X_O_b.translation().transpose() << endl;
     cout << "rotation" << endl
-         << mbc_.bodyPosW[i].rotation() << endl;
+         << X_O_b.rotation() << endl;
   }
 
 }
@@ -122,9 +125,10 @@ PTransformd geoPoseToPTd(const Pose& pose)
 }
 
 MarkerArray makeMarkerArrayFromMBC(
-    const rbd::MultiBody& mb,
-    const rbd::MultiBodyConfig& mbc,
-    const std::string& mb_root_frame_id)
+    const MultiBody& mb,
+    const MultiBodyConfig& mbc,
+    const map<string, PTransformd>& mbToBase,
+    const string& mb_root_frame_id)
 {
   MarkerArray msg;
   int id = 0;
@@ -133,7 +137,7 @@ MarkerArray makeMarkerArrayFromMBC(
 
   for (int i = 0; i < mb.nrBodies(); i++)
   {
-    PTransformd X_O_l = mbc.bodyPosW[i];
+    PTransformd X_O_l = mbToBase.at(mb.body(i).name())*mbc.bodyPosW[i];
     Marker mrk = makeMarkerMESH_RESOURCETemplate();
     mrk.header.stamp = stamp;
     mrk.header.frame_id = frame_id;

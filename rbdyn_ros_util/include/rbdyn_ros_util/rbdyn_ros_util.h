@@ -15,9 +15,11 @@ namespace rbdyn_ros_util
 {
 
 /**
- * @brief Output value of MultBodyConfig
+ * @brief Output value of MultiBodyConfig
+ * @note MultiBodyConfig::bodyPosW is transformed by MultiBodyConfig::bodiesBaseTransform
  */
-void printMBC(const rbd::MultiBody& mb, const rbd::MultiBodyConfig& mbc);
+void printMBC(const rbd::MultiBody& mb, const rbd::MultiBodyConfig& mbc,
+              const std::map<std::string, sva::PTransformd>& mbToBase);
 
 /**
  * @param mb
@@ -60,12 +62,14 @@ sva::PTransformd geoPoseToPTd(const geometry_msgs::Pose& pose);
 /**
  * @param mb
  * @param mbc
+ * @param mbToBase rbd::MultiBodyGraph::bodiesBaseTransform(rootbodyname, X_b0_j0)
  * @param mb_root_frame_id
  * @param[out] msg
  */
 visualization_msgs::MarkerArray makeMarkerArrayFromMBC(
     const rbd::MultiBody& mb,
     const rbd::MultiBodyConfig& mbc,
+    const std::map<std::string, sva::PTransformd>& mbToBase,
     const std::string& mb_root_frame_id="world");
 
 /**
