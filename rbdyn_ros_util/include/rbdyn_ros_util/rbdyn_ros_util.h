@@ -41,15 +41,6 @@ void jointStateToMBC(rbd::MultiBody mb, sensor_msgs::JointState msg,
                      rbd::MultiBodyConfig& mbc);
 
 /**
- * @brief set position limit to mbc
- * @param mb
- * @param q_limit Position limit that is gotten from RBDynUrdf::Limit
- * @param[out] mbc_limit
- */
-//void setPosLimitsToMBC(rbd::MultiBody mb,
-//                       std::map<std::string, double> q_limit, rbd::MultiBodyConfig& mbc_limit);
-
-/**
  * @brief Put value of sva::PTransformd to geometry_msgs::Pose
  */
 geometry_msgs::Pose geoPoseFromPTd(const sva::PTransformd& pt);

@@ -89,15 +89,6 @@ void jointStateToMBC(MultiBody mb, sensor_msgs::JointState msg,
   }
 }
 
-//void setPosLimitsToMBC(MultiBody mb,
-//                       map<string, double> q_limit, MultiBodyConfig& mbc_limit)
-//{
-//  mbc_limit.zero(mb);
-//  for (auto itr = q_limit.begin(); itr != q_limit.end(); itr++)
-//    mbc_limit.q[mb.jointIndexByName(itr->first)][0] = itr->second;
-//}
-
-
 Pose geoPoseFromPTd(const PTransformd& pt)
 {
   /// @note PTransformd.rotation == ^{After}R_{Before}
