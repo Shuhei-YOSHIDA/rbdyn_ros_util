@@ -37,7 +37,7 @@ void jointStateFromMBC(const rbd::MultiBody& mb, const rbd::MultiBodyConfig& mbc
  * @param msg
  * @param[out] mbc
  */
-void jointStateToMBC(rbd::MultiBody mb, sensor_msgs::JointState msg,
+void jointStateToMBC(const rbd::MultiBody& mb, const sensor_msgs::JointState& msg,
                      rbd::MultiBodyConfig& mbc);
 
 /**

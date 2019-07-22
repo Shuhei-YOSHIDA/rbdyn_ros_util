@@ -54,7 +54,7 @@ void printMBC(const MultiBody& mb, const MultiBodyConfig& mbc,
 
 }
 
-void jointStateFromMBC(MultiBody mb, MultiBodyConfig mbc,
+void jointStateFromMBC(const MultiBody& mb, const MultiBodyConfig& mbc,
                        JointState& msg)
 {
   msg.name.clear();
@@ -75,7 +75,7 @@ void jointStateFromMBC(MultiBody mb, MultiBodyConfig mbc,
   msg.header.stamp = ros::Time::now();
 }
 
-void jointStateToMBC(MultiBody mb, sensor_msgs::JointState msg,
+void jointStateToMBC(const MultiBody& mb, const JointState& msg,
                      MultiBodyConfig& mbc)
 {
   /// @todo set velocity
