@@ -79,7 +79,7 @@ void jointStateToMBC(const MultiBody& mb, const JointState& msg,
                      MultiBodyConfig& mbc)
 {
   /// @todo set velocity
-  for (int i = 0; msg.name.size(); i++)
+  for (int i = 0; i < msg.name.size(); i++)
   {
     int index = mb.jointIndexByName(msg.name[i]);
     if (mb.joint(index).dof() == 1) // Only for 1dof joint
