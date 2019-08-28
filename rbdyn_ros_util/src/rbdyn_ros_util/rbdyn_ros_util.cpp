@@ -89,6 +89,28 @@ void jointStateToMBC(const MultiBody& mb, const JointState& msg,
   }
 }
 
+void poseToMBCFreeJointPos(const MultiBody& mb, const Pose& msg,
+                           MultiBodyConfig& mbc, int joint_index)
+{
+  if (mb.sJoint(joint_index).type() != Joint::Type::Free)
+  {
+    cerr << "joint_index is invalid @rbdyn_ros_util::poseToMBCFreeJointPos" << endl;
+    return;
+  }
+  Vector3d p;
+  Quaterniond q;
+  pointMsgToEigen(msg.position, p);
+  quaternionMsgToEigen(msg.orientation, q);
+  q = q.inverse(); /// @todo is it ok?
+  mbc.q[joint_index][0] = q.w();
+  mbc.q[joint_index][1] = q.x();
+  mbc.q[joint_index][2] = q.y();
+  mbc.q[joint_index][3] = q.z();
+  mbc.q[joint_index][4] = p[0];
+  mbc.q[joint_index][5] = p[1];
+  mbc.q[joint_index][6] = p[2];
+}
+
 Pose geoPoseFromPTd(const PTransformd& pt)
 {
   /// @note PTransformd.rotation == ^{After}R_{Before}

@@ -41,6 +41,13 @@ void jointStateToMBC(const rbd::MultiBody& mb, const sensor_msgs::JointState& ms
                      rbd::MultiBodyConfig& mbc);
 
 /**
+ * @brief Set Pose msg value to Free joint(Quaternion+Position) of MultiBodyConfig
+ * @note Use same coordinate system for msg and mbc
+ */
+void poseToMBCFreeJointPos(const rbd::MultiBody& mb, const geometry_msgs::Pose& msg,
+                           rbd::MultiBodyConfig& mbc, int joint_index);
+
+/**
  * @brief Put value of sva::PTransformd to geometry_msgs::Pose
  */
 geometry_msgs::Pose geoPoseFromPTd(const sva::PTransformd& pt);
