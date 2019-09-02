@@ -101,7 +101,7 @@ void poseToMBCFreeJointPos(const MultiBody& mb, const Pose& msg,
   Quaterniond q;
   pointMsgToEigen(msg.position, p);
   quaternionMsgToEigen(msg.orientation, q);
-  q = q.inverse(); /// @todo is it ok?
+  //q = q.inverse(); // q is inverse frame originally
   mbc.q[joint_index][0] = q.w();
   mbc.q[joint_index][1] = q.x();
   mbc.q[joint_index][2] = q.y();
